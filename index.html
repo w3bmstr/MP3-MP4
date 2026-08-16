@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="Groove — A beautiful offline-first PWA music player" />
+  <meta name="theme-color" content="#0d0d0d" id="themeColorMeta" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Groove" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <title>Groove — Music Player</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Distinctive fonts: Playfair Display (display) + DM Mono (data) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════
+       INSTALL BANNER
+  ═══════════════════════════════════════ -->
+  <div class="install-banner" id="installBanner" role="banner" aria-live="polite" hidden>
+    <div class="install-banner__icon" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+    </div>
+    <span class="install-banner__text">Install Groove for offline listening</span>
+    <div class="install-banner__actions">
+      <button class="btn btn--ghost btn--sm" id="installDismiss" aria-label="Dismiss install prompt">Later</button>
+      <button class="btn btn--accent btn--sm" id="installAccept" aria-label="Install app">Install</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       NAV DRAWER OVERLAY
+  ═══════════════════════════════════════ -->
+  <div class="nav-overlay" id="navOverlay" aria-hidden="true" role="presentation"></div>
+
+  <!-- ═══════════════════════════════════════
+       NAVIGATION DRAWER
+  ═══════════════════════════════════════ -->
+  <nav class="nav-drawer" id="navDrawer" aria-label="Main navigation" aria-hidden="true">
+    <div class="nav-drawer__header">
+      <span class="nav-drawer__logo">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" opacity="0.15"/>
+          <circle cx="12" cy="12" r="6" opacity="0.3"/>
+          <circle cx="12" cy="12" r="2"/>
+        </svg>
+        Groove
+      </span>
+      <button class="btn btn--icon" id="navClose" aria-label="Close navigation">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <ul class="nav-drawer__list" role="list">
+      <li>
+        <a href="#player" class="nav-drawer__item nav-drawer__item--active" aria-current="page" id="navNowPlaying">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/>
+          </svg>
+          Now Playing
+        </a>
+      </li>
+      <li>
+        <a href="#playlist" class="nav-drawer__item" id="navPlaylist">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <circle cx="3" cy="6" r="1" fill="currentColor"/>
+            <circle cx="3" cy="12" r="1" fill="currentColor"/>
+            <circle cx="3" cy="18" r="1" fill="currentColor"/>
+          </svg>
+          Queue
+        </a>
+      </li>
+    </ul>
+    <div class="nav-drawer__footer">
+      <div class="nav-drawer__status" id="navOfflineStatus">
+        <span class="status-dot status-dot--online" id="statusDot"></span>
+        <span id="statusText">Online</span>
+      </div>
+      <span class="nav-drawer__version">Groove v1.0 · PWA</span>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════
+       APP HEADER
+  ═══════════════════════════════════════ -->
+  <header class="app-header" role="banner">
+    <button class="btn btn--icon" id="navToggle"
+      aria-label="Open navigation menu"
+      aria-expanded="false"
+      aria-controls="navDrawer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+    <a href="#" class="app-header__brand" aria-label="Groove home">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" opacity="0.2"/>
+        <circle cx="12" cy="12" r="6" opacity="0.4"/>
+        <circle cx="12" cy="12" r="2"/>
+      </svg>
+      Groove
+    </a>
+
+    <div class="app-header__actions">
+      <button class="btn btn--icon btn--power" id="powerToggle" aria-label="Turn on manual battery saver" aria-pressed="false" title="Battery Saver: Off">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="2" y="7" width="18" height="10" rx="2" />
+          <line x1="22" y1="10" x2="22" y2="14" />
+          <path d="M11 9L9 13h3l-2 4" />
+        </svg>
+      </button>
+
+      <button class="btn btn--icon" id="themeToggle" aria-label="Toggle light/dark theme">
+        <!-- Sun (shown in dark mode) -->
+        <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <!-- Moon (shown in light mode) -->
+        <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+
+      <button class="btn btn--icon" id="miniModeToggle" aria-label="Toggle mini player mode" aria-pressed="false" title="Mini Player: Off">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="12" rx="2"/>
+          <line x1="8" y1="20" x2="16" y2="20"/>
+          <line x1="12" y1="16" x2="12" y2="20"/>
+        </svg>
+      </button>
+
+      <label class="skin-picker" for="skinSelect">
+        <span class="skin-picker__label">Skin</span>
+        <select id="skinSelect" class="skin-picker__select" aria-label="Select visual skin">
+          <option value="gold">Gold</option>
+          <option value="ocean">Ocean</option>
+          <option value="sunset">Sunset</option>
+          <option value="forest">Forest</option>
+        </select>
+      </label>
+
+      <span class="power-state" id="powerState" aria-live="polite">Saver Off</span>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════
+       MAIN APP CONTENT
+  ═══════════════════════════════════════ -->
+  <main class="app-main" id="appMain">
+
+    <!-- ─── PLAYER SECTION ─── -->
+    <section class="player" id="player" aria-label="Music player" aria-live="polite">
+
+      <!-- Album Art / Vinyl Disc -->
+      <div class="player__art-stage" aria-hidden="true">
+        <div class="player__vinyl" id="vinylDisc">
+          <!-- Outer groove rings -->
+          <div class="player__vinyl-grooves"></div>
+          <!-- Center label -->
+          <div class="player__vinyl-label" id="vinylLabel">
+            <img
+              src="icons/icon-192.png"
+              alt=""
+              id="albumArt"
+              class="player__album-img"
+              loading="lazy"
+            />
+            <div class="player__vinyl-spindle"></div>
+          </div>
+        </div>
+
+        <video
+          id="videoPlayer"
+          class="player__video"
+          playsinline
+          preload="metadata"
+          aria-label="Video playback surface"
+          aria-hidden="true"
+          disablepictureinpicture
+        ></video>
+
+        <!-- Tonearm -->
+        <div class="player__tonearm-wrapper" id="tonearmWrapper">
+          <div class="player__tonearm" id="tonearm">
+            <div class="player__tonearm-head"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Track Metadata -->
+      <div class="player__meta">
+        <h1 class="player__title" id="trackTitle">Select a Track</h1>
+        <p class="player__artist" id="trackArtist">—</p>
+        <p class="player__album" id="trackAlbum"></p>
+      </div>
+
+      <!-- Seek Bar -->
+      <div class="player__seek-section" role="group" aria-label="Seek controls">
+        <span class="time-label" id="currentTime" aria-label="Current time">0:00</span>
+        <div class="seek-track">
+          <div class="seek-fill" id="seekFill" style="width:0%"></div>
+          <input
+            type="range"
+            class="seek-bar"
+            id="seekBar"
+            min="0"
+            max="100"
+            value="0"
+            step="0.1"
+            aria-label="Seek through track"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            aria-valuetext="0:00 of 0:00"
+          />
+        </div>
+        <span class="time-label" id="totalDuration" aria-label="Total duration">0:00</span>
+      </div>
+
+      <div class="player__waveform" role="img" aria-label="Live waveform visualization">
+        <canvas id="waveformCanvas" width="720" height="120"></canvas>
+      </div>
+
+      <!-- Playback Controls -->
+      <div class="player__controls" role="group" aria-label="Playback controls">
+        <button
+          class="btn btn--ctrl"
+          id="shuffleBtn"
+          aria-label="Toggle shuffle"
+          aria-pressed="false"
+          title="Shuffle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polyline points="16 3 21 3 21 8"/>
+            <line x1="4" y1="20" x2="21" y2="3"/>
+            <polyline points="21 16 21 21 16 21"/>
+            <line x1="15" y1="15" x2="21" y2="21"/>
+            <line x1="4" y1="4" x2="9" y2="9"/>
+          </svg>
+        </button>
+
+        <button class="btn btn--nav" id="prevBtn" aria-label="Previous track">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <polygon points="19 20 9 12 19 4 19 20"/>
+            <rect x="5" y="4" width="2" height="16" rx="1"/>
+          </svg>
+        </button>
+
+        <button class="btn btn--play" id="playBtn" aria-label="Play" aria-pressed="false">
+          <svg class="icon-play" width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <svg class="icon-pause" width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none">
+            <rect x="6" y="4" width="4" height="16" rx="1"/>
+            <rect x="14" y="4" width="4" height="16" rx="1"/>
+          </svg>
+        </button>
+
+        <button class="btn btn--nav" id="nextBtn" aria-label="Next track">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <polygon points="5 4 15 12 5 20 5 4"/>
+            <rect x="17" y="4" width="2" height="16" rx="1"/>
+          </svg>
+        </button>
+
+        <button
+          class="btn btn--ctrl"
+          id="repeatBtn"
+          aria-label="Toggle repeat mode"
+          aria-pressed="false"
+          title="Repeat: Off"
+          data-mode="none">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polyline points="17 1 21 5 17 9"/>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+            <polyline points="7 23 3 19 7 15"/>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+          <span class="repeat-badge" id="repeatBadge" aria-hidden="true" hidden></span>
+        </button>
+      </div>
+
+      <div class="player__eq" role="group" aria-label="Equalizer controls">
+        <div class="player__eq-head">
+          <h3 class="player__eq-title">Equalizer</h3>
+          <select id="eqModeSelect" class="player__eq-mode" aria-label="Select equalizer mode">
+            <option value="off">Off</option>
+            <option value="auto">Auto EQ</option>
+            <option value="three">3-Band EQ</option>
+            <option value="five">5-Band EQ</option>
+            <option value="ten">10-Band EQ</option>
+            <option value="fifteen">15-Band EQ</option>
+            <option value="twenty">20-Band EQ</option>
+            <option value="thirtyone">31-Band EQ</option>
+          </select>
+        </div>
+        <div class="player__eq-tools">
+          <label class="player__eq-tool" for="eqPresetSelect">
+            <span class="player__eq-tool-label">Preset</span>
+            <select id="eqPresetSelect" class="player__eq-mode" aria-label="Select equalizer preset">
+              <optgroup label="Core">
+                <option value="flat" selected>Flat</option>
+                <option value="bassBoost">Bass Boost</option>
+                <option value="trebleBoost">Treble Boost</option>
+                <option value="vocalBoost">Vocal Boost / Clarity</option>
+                <option value="loudness">Loudness (Smile Curve)</option>
+                <option value="acoustic">Acoustic</option>
+                <option value="rock">Rock</option>
+                <option value="pop">Pop</option>
+                <option value="jazz">Jazz</option>
+                <option value="classical">Classical</option>
+              </optgroup>
+              <optgroup label="Advanced Music">
+                <option value="electronicEdm">Electronic / EDM</option>
+                <option value="hipHop">Hip-Hop</option>
+                <option value="metal">Metal</option>
+                <option value="deepBass">Deep Bass</option>
+                <option value="bright">Bright</option>
+                <option value="warmTube">Warm Tube</option>
+              </optgroup>
+              <optgroup label="Voice">
+                <option value="podcast">Podcast</option>
+                <option value="speechClarity">Speech Clarity</option>
+                <option value="nightMode">Night Mode</option>
+              </optgroup>
+              <optgroup label="Environment">
+                <option value="carMode">Car Mode</option>
+                <option value="smallSpeakerMode">Small Speaker Mode</option>
+              </optgroup>
+              <optgroup label="Booster">
+                <option value="boosterOff">Booster Off (100%)</option>
+                <option value="safeBoost">Safe Boost</option>
+                <option value="maxBoost">Max Boost</option>
+              </optgroup>
+              <optgroup label="Smart">
+                <option value="autoEq">Auto-EQ (Track Adaptive)</option>
+                <option value="harmonicEnhancer">Harmonic Enhancer</option>
+              </optgroup>
+            </select>
+          </label>
+          <label class="player__eq-booster" for="boosterBar">
+            <span class="player__eq-tool-label">Booster</span>
+            <div class="vol-track">
+              <div class="vol-fill" id="boosterFill" style="width:0%"></div>
+              <input
+                id="boosterBar"
+                class="volume-bar"
+                type="range"
+                min="100"
+                max="200"
+                step="1"
+                value="100"
+                aria-label="Volume booster level"
+                aria-valuemin="100"
+                aria-valuemax="200"
+                aria-valuenow="100"
+                aria-valuetext="100%"
+              />
+            </div>
+            <span class="vol-value" id="boosterValue">100%</span>
+          </label>
+          <label class="player__eq-limiter" for="eqLimiterToggle">
+            <input id="eqLimiterToggle" type="checkbox" />
+            <span>Limiter</span>
+          </label>
+        </div>
+        <p class="player__eq-hint" id="eqModeHint">Equalizer bypassed for maximum battery life.</p>
+        <div class="player__eq-grid" id="eqBandContainer" aria-live="polite"></div>
+        <div class="player__eq-auto" id="eqAutoStatus" hidden>Auto EQ is adapting bass, mid, and treble in real time.</div>
+      </div>
+
+      <template id="eqBandTemplate">
+        <label class="eq-control">
+          <span class="eq-control__name">Band</span>
+          <input type="range" min="-12" max="12" value="0" step="1" />
+          <span class="eq-control__value">0 dB</span>
+        </label>
+      </template>
+    </section>
+
+    <!-- ─── PLAYLIST SECTION ─── -->
+    <section class="playlist-section" id="playlist" aria-label="Track queue">
+      <div class="playlist-section__header">
+        <h2 class="playlist-section__title">Queue</h2>
+        <div class="playlist-section__actions">
+          <button class="btn btn--ghost btn--sm" id="addTracksBtn" type="button" aria-label="Load MP3 or MP4 files from device">Load MP3/MP4</button>
+          <span class="playlist-section__count" id="playlistCount" aria-live="polite">0 tracks</span>
+        </div>
+      </div>
+
+      <input id="filePicker" type="file" accept=".mp3,.mp4,audio/*,video/*" multiple hidden />
+
+      <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="Drop audio or video files to load them">
+        <span class="drop-zone__title">Drop MP3 or MP4 files here</span>
+        <span class="drop-zone__subtitle">or click Load MP3/MP4 to browse</span>
+      </div>
+
+      <ul
+        class="track-list"
+        id="trackList"
+        role="listbox"
+        aria-label="Track list"
+        aria-multiselectable="false">
+        <!-- Track items injected by JS -->
+      </ul>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════
+       TOAST NOTIFICATION
+  ═══════════════════════════════════════ -->
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <span class="toast__icon" aria-hidden="true" id="toastIcon">ℹ</span>
+    <span class="toast__msg" id="toastMsg">—</span>
+  </div>
+
+  <aside class="mini-player" id="miniPlayer" aria-label="Mini player" hidden>
+    <button class="mini-player__expand" id="miniExpandBtn" aria-label="Exit mini player mode" title="Exit mini player">▲</button>
+    <div class="mini-player__meta">
+      <span class="mini-player__title" id="miniTrackTitle">Select a Track</span>
+      <span class="mini-player__artist" id="miniTrackArtist">—</span>
+    </div>
+    <div class="mini-player__controls" role="group" aria-label="Mini player controls">
+      <button class="btn btn--icon" id="miniPrevBtn" aria-label="Previous track">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <polygon points="19 20 9 12 19 4 19 20"/>
+          <rect x="5" y="4" width="2" height="16" rx="1"/>
+        </svg>
+      </button>
+      <button class="btn btn--icon" id="miniPlayBtn" aria-label="Play or pause">
+        <svg class="icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        <svg class="icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none">
+          <rect x="6" y="4" width="4" height="16" rx="1"/>
+          <rect x="14" y="4" width="4" height="16" rx="1"/>
+        </svg>
+      </button>
+      <button class="btn btn--icon" id="miniNextBtn" aria-label="Next track">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <polygon points="5 4 15 12 5 20 5 4"/>
+          <rect x="17" y="4" width="2" height="16" rx="1"/>
+        </svg>
+      </button>
+    </div>
+  </aside>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
