@@ -14,7 +14,7 @@
    build. Old caches are automatically cleaned up
    in the activate handler.
 ════════════════════════════════════════════════ */
-const CACHE_VERSION   = 'v1.0.7';
+const CACHE_VERSION   = 'v1.3.2';
 const SHELL_CACHE     = `groove-shell-${CACHE_VERSION}`;
 const MUSIC_CACHE     = `groove-music-${CACHE_VERSION}`;
 const RUNTIME_CACHE   = `groove-runtime-${CACHE_VERSION}`;
@@ -27,8 +27,8 @@ const SHELL_ASSETS = [
   '/style.css',
   '/app.js',
   '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  '/favicon.svg',
+  '/cover.svg',
 ];
 
 /* ─── Media files (precached on install) ───────── */
@@ -47,7 +47,7 @@ const MUSIC_ASSETS = [
 
 /* ─── Cover art (precached on install) ─────────── */
 const COVER_ASSETS = [
-  '/icons/icon-192.png',
+  '/cover.svg',
 ];
 
 /* ─── Google Fonts (runtime-cached) ─────────────── */

@@ -21,7 +21,7 @@ const PLAYLIST = [
     artist: 'Mathgrant',
     album:  'Single',
     src:    'mathgrant_-_02_-_Arctic_Snow.mp3',
-    cover:  'icons/icon-192.png',
+    cover:  'cover.svg',
   },
 ];
 
@@ -354,16 +354,83 @@ const DOM = {
   eqBandTemplate:$('eqBandTemplate'),
   eqAutoStatus:  $('eqAutoStatus'),
   eqPresetSelect:$('eqPresetSelect'),
+  eqCurveRow:    $('eqCurveRow'),
+  eqCurvePath:   $('eqCurvePath'),
+  eqResetBtn:    $('eqResetBtn'),
   boosterBar:    $('boosterBar'),
   boosterFill:   $('boosterFill'),
   boosterValue:  $('boosterValue'),
   eqLimiterToggle:$('eqLimiterToggle'),
-  // Playlist
+  // Volume + mute
+  muteBtn:       $('muteBtn'),
+  volumeBar:     $('volumeBar'),
+  volumeFill:    $('volumeFill'),
+  volumeValue:   $('volumeValue'),
+  // Favorite / speed / A-B loop
+  favoriteBtn:   $('favoriteBtn'),
+  speedBar:      $('speedBar'),
+  speedValue:    $('speedValue'),
+  loopSetA:      $('loopSetA'),
+  loopSetB:      $('loopSetB'),
+  loopClear:     $('loopClear'),
+  seekLoopRegion:$('seekLoopRegion'),
+  // Sleep timer
+  sleepTimerOptions: $('sleepTimerOptions'),
+  sleepRemaining:$('sleepRemaining'),
+  // Shortcuts modal
+  shortcutsBtn:    $('shortcutsBtn'),
+  shortcutsOverlay:$('shortcutsOverlay'),
+  shortcutsModal:  $('shortcutsModal'),
+  shortcutsClose:  $('shortcutsClose'),
+  // Preamp
+  preampBar:    $('preampBar'),
+  preampFill:   $('preampFill'),
+  preampValue:  $('preampValue'),
+  // Parametric EQ
+  peqToggle:    $('peqToggle'),
+  peqBands:     $('peqBands'),
+  peqBandTemplate: $('peqBandTemplate'),
+  // Crossfeed
+  crossfeedToggle: $('crossfeedToggle'),
+  crossfeedBar:    $('crossfeedBar'),
+  crossfeedValue:  $('crossfeedValue'),
+  // Convolution
+  convolverToggle: $('convolverToggle'),
+  convolverSpace:  $('convolverSpace'),
+  convolverCustomOption: $('convolverCustomOption'),
+  convolverLoadBtn: $('convolverLoadBtn'),
+  convolverFilePicker: $('convolverFilePicker'),
+  convolverMixBar: $('convolverMixBar'),
+  convolverMixValue: $('convolverMixValue'),
+  // Loudness normalization
+  loudnessToggle: $('loudnessToggle'),
+  // Gapless
+  gaplessToggle: $('gaplessToggle'),
+  // ABX
+  abxStartBtn:   $('abxStartBtn'),
+  abxChoices:    $('abxChoices'),
+  abxPlayXBtn:   $('abxPlayXBtn'),
+  abxGuessABtn:  $('abxGuessABtn'),
+  abxGuessBBtn:  $('abxGuessBBtn'),
+  abxStatus:     $('abxStatus'),
+  abxScore:      $('abxScore'),
+  // Visualizer mode + clip indicator
+  vizWaveBtn:     $('vizWaveBtn'),
+  vizSpectrumBtn: $('vizSpectrumBtn'),
+  clipIndicator:  $('clipIndicator'),
+  // Bookmarks
+  bookmarkAddBtn: $('bookmarkAddBtn'),
+  bookmarksList:  $('bookmarksList'),
+  // Picture-in-picture
+  pipBtn: $('pipBtn'),
+  // Playlist + search
   trackList:     $('trackList'),
   playlistCount: $('playlistCount'),
   addTracksBtn:  $('addTracksBtn'),
   filePicker:    $('filePicker'),
   dropZone:      $('dropZone'),
+  trackSearch:   $('trackSearch'),
+  favFilterBtn:  $('favFilterBtn'),
   // Install
   installBanner: $('installBanner'),
   installAccept: $('installAccept'),
@@ -447,6 +514,77 @@ class GroovePlayer {
     this._skin = this.loadSkin();
     this._miniPlayerMode = this.loadMiniPlayerMode();
 
+    // Volume + mute
+    this._volume = this._loadVolume();
+    this._muted   = false;
+
+    // Favorites + search
+    this._favorites   = this.loadFavorites();
+    this._searchQuery = '';
+    this._favOnly     = false;
+
+    // Playback speed
+    this._speed = this.loadSpeed();
+
+    // A/B loop
+    this._loopA = null;
+    this._loopB = null;
+
+    // Sleep timer
+    this._sleepEndAt       = null;
+    this._sleepAtTrackEnd  = false;
+    this._sleepInterval    = null;
+    this._sleepFadeFactor  = 1;
+    this._sleepFadeMs      = 20000;
+    this._sleepSelectedValue = '0';
+
+    // Preamp / loudness
+    this._preampDb         = this.loadPreampDb();
+    this._loudnessEnabled  = localStorage.getItem('groove-loudness-on') === '1';
+    this._replayGainDb     = this.loadReplayGainDb();
+    this._rgRunningLevel   = null;
+    this._rgSampleBuf      = null;
+
+    // Parametric EQ
+    this._peqEnabled = localStorage.getItem('groove-peq-on') === '1';
+    this._peqBands   = this.loadPeqBands();
+    this._peqFilters = null;
+
+    // Crossfeed
+    this._crossfeedEnabled = localStorage.getItem('groove-crossfeed-on') === '1';
+    this._crossfeedAmount  = this.loadCrossfeedAmount();
+    this._crossfeedNodes   = null;
+
+    // Convolution DSP
+    this._convolverEnabled = localStorage.getItem('groove-convolver-on') === '1';
+    this._convolverSpace   = localStorage.getItem('groove-convolver-space') || 'smallRoom';
+    this._convolverMix     = this.loadConvolverMix();
+    this._convolverNodes   = null;
+    this._convolverCustomBuffer = null;
+
+    // Gapless
+    this._gaplessEnabled    = localStorage.getItem('groove-gapless-off') !== '1';
+    this._preloadedNextSrc  = null;
+    this._preloadedNextEl   = null;
+
+    // Per-track DSP profiles
+    this._trackDspProfiles          = this.loadTrackDspProfiles();
+    this._suppressDspProfileCapture = false;
+
+    // Bookmarks
+    this._bookmarks = this.loadBookmarks();
+
+    // ABX blind test
+    this._abx = { active: false, x: null, currentlyBypassed: null, score: { correct: 0, total: 0 } };
+    this._mediaSessionPosInterval = null;
+    this._dspBypassed = false;
+
+    // Viz mode + clipping
+    this._vizMode       = localStorage.getItem('groove-viz-mode') || 'wave';
+    this._spectrumFreqData = null;
+    this._clipUntil     = 0;
+    this._cachedAccent  = null;
+
     if (this.video) {
       this.video.preload = 'metadata';
       this.video.playsInline = true;
@@ -469,19 +607,39 @@ class GroovePlayer {
     this.bindMediaEvents();
     this.bindUIEvents();
     this.bindDragAndDrop();
+    this.bindExtraFeatures();
     this.bindNetworkEvents();
     this.bindInstallPrompt();
     this.registerServiceWorker();
     this.setMiniPlayerMode(this._miniPlayerMode, false);
 
-    // Set initial volume
+    // Volume + mute
+    this._applyVolumeSlider(this._volume, false);
     this.applyVolumeAndMute();
     this.renderEqualizerUI();
     this.setEqualizerMode(this._eqMode, false, false);
     this.applyPreset(this._eqPreset, false, false, false);
+    this.applySpeed(this._speed, false);
+    this.resumeSleepTimerFromStorage();
 
-    // Load first track (don't auto-play)
-    this.loadTrack(0, false);
+    // DSP stages
+    this._suppressDspProfileCapture = true;
+    this.setPreampDb(this._preampDb, false);
+    this.renderPeqBandsUI();
+    this.setPeqEnabled(this._peqEnabled, false);
+    this.setCrossfeedAmount(this._crossfeedAmount, false);
+    this.setCrossfeedEnabled(this._crossfeedEnabled, false);
+    this.setConvolverMix(this._convolverMix, false);
+    if (DOM.convolverSpace) DOM.convolverSpace.value = this._convolverSpace;
+    this.setConvolverEnabled(this._convolverEnabled, false);
+    this._suppressDspProfileCapture = false;
+    this.setLoudnessEnabled(this._loudnessEnabled, false);
+    this.setGaplessEnabled(this._gaplessEnabled, false);
+    this.setVizMode(this._vizMode);
+
+    // Resume last session
+    const resume = this.loadResumeState();
+    this.loadTrack(resume.index, false, resume.time);
   }
 
   /* ════════════════════════════════════════════
@@ -748,17 +906,21 @@ class GroovePlayer {
 
   applyVolumeAndMute() {
     const boost = this.clampVolumeBoost(this._volumeBoost);
-    const fallbackGain = Math.min(1, this.getVolumeBoostGain(boost));
+    const fade = typeof this._sleepFadeFactor === 'number' ? this._sleepFadeFactor : 1;
+    const vol = this._muted ? 0 : Math.max(0, Math.min(100, this._volume ?? 100));
+    const volFraction = vol / 100;
+    const fallbackGain = Math.min(1, this.getVolumeBoostGain(boost)) * volFraction * fade;
 
     [this.audio, this.video].forEach((media) => {
       if (!media) return;
       media.volume = fallbackGain;
-      media.muted = false;
+      media.muted  = false;
     });
 
     if (this._audioCtx && this._outputGain) {
       const now = this._audioCtx.currentTime;
-      this._outputGain.gain.setTargetAtTime(this.getVolumeBoostGain(boost), now, 0.02);
+      this._outputGain.gain.setTargetAtTime(
+        this.getVolumeBoostGain(boost) * volFraction * fade, now, 0.02);
     }
 
     this.renderVolumeBoosterUI();
@@ -813,6 +975,11 @@ class GroovePlayer {
   connectMediaElementToAudioGraph(media) {
     if (!media || !this._audioCtx || !this._inputNode) return;
     if (this._mediaSourceNodes.has(media)) return;
+    // file:// URLs are treated as unique opaque origins by Chrome/Edge.
+    // createMediaElementSource outputs zeroes (CORS block). Skip the graph
+    // on file:// — audio plays via media.volume. Run via Start Groove.bat
+    // (http://localhost:3000) to get full EQ/DSP.
+    if (location.protocol === 'file:') return;
 
     try {
       const sourceNode = this._audioCtx.createMediaElementSource(media);
@@ -1173,12 +1340,61 @@ class GroovePlayer {
     const bands = this.isManualEqMode(this._eqMode) ? this.getEqualizerBandsForMode(this._eqMode) : [];
     DOM.eqBandContainer.setAttribute('data-band-count', String(bands.length));
 
-    if (!bands.length) return;
+    if (!bands.length) {
+      if (DOM.eqCurveRow) DOM.eqCurveRow.hidden = true;
+      return;
+    }
 
     bands.forEach((band) => {
       const control = this.createEqBandControl(band, this._eqMode);
       DOM.eqBandContainer.appendChild(control);
     });
+
+    if (DOM.eqCurveRow) DOM.eqCurveRow.hidden = false;
+    this.drawEqCurve();
+  }
+
+  drawEqCurve() {
+    if (!DOM.eqCurvePath) return;
+    const bands = this.isManualEqMode(this._eqMode) ? this.getEqualizerBandsForMode(this._eqMode) : [];
+    if (!bands.length) { DOM.eqCurvePath.setAttribute('d', ''); return; }
+
+    const W = 600, H = 60, mid = H / 2;
+    // map gain → y: +12dB = top, -12dB = bottom
+    const gainToY = (g) => mid - (g / 12) * (mid - 4);
+    const step = W / (bands.length - 1 || 1);
+
+    const points = bands.map((band, i) => {
+      const gain = (this._eqValues[this._eqMode] && this._eqValues[this._eqMode][band.key] !== undefined)
+        ? this._eqValues[this._eqMode][band.key]
+        : 0;
+      return [i * step, gainToY(gain)];
+    });
+
+    // smooth catmull-rom spline
+    let d = `M ${points[0][0]},${points[0][1]}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i - 1] || points[i];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[i + 2] || p2;
+      const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+      const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+      const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+      const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+      d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0]},${p2[1]}`;
+    }
+    DOM.eqCurvePath.setAttribute('d', d);
+  }
+
+  zeroAllEqBands() {
+    const bands = this.getEqualizerBandsForMode(this._eqMode);
+    bands.forEach((band) => {
+      this._eqValues[this._eqMode][band.key] = 0;
+    });
+    this.saveEqualizerState();
+    this.renderEqualizerUI();
+    this.applyManualEqGains();
   }
 
   createEqBandControl(band, mode) {
@@ -1214,6 +1430,9 @@ class GroovePlayer {
     slider.dataset.bandKey = band.key;
     slider.setAttribute('aria-label', `${band.label} gain in dB`);
     valueEl.textContent = this.formatEqValue(value);
+
+    // non-zero indicator
+    if (value !== 0) control.classList.add('has-gain');
 
     return control;
   }
@@ -1334,63 +1553,62 @@ class GroovePlayer {
   rebuildEqualizerRouting() {
     if (!this._audioCtx || !this._inputNode || !this._analyser || !this._audioGraphConnected) return;
 
-    try {
-      this._inputNode.disconnect();
-    } catch {
-      // Ignore disconnected node errors.
-    }
+    const safe = (node) => { if (node) try { node.disconnect(); } catch { /* ignore */ } };
 
-    if (this._limiter) {
-      try {
-        this._limiter.disconnect();
-      } catch {
-        // Ignore disconnected node errors.
-      }
-    }
-
+    safe(this._inputNode);
+    safe(this._limiter);
     this.disconnectAllEqFilters();
-
-    if (this._analysisAnalyser) {
-      try {
-        this._analysisAnalyser.disconnect();
-      } catch {
-        // Ignore disconnected node errors.
-      }
-    }
-
-    try {
-      this._analyser.disconnect();
-    } catch {
-      // Ignore disconnected node errors.
-    }
+    this.disconnectPeqFilters();
+    this.disconnectCrossfeedNodes();
+    this.disconnectConvolverNodes();
+    safe(this._analysisAnalyser);
+    safe(this._analyser);
 
     let outputNode = this._inputNode;
 
-    // Battery-optimized bypass: when EQ is off, route straight to output stage.
+    // ABX bypass — skip all DSP colour but keep level.
+    if (!this._dspBypassed) {
+
+    // EQ filter chain
     if (this._eqMode !== 'off') {
       const chainMode = this._eqMode === 'auto' ? 'auto' : this._eqMode;
       const chain = this.ensureEqFiltersForMode(chainMode);
-
       if (chain.length) {
-        this._inputNode.connect(chain[0]);
-        for (let i = 0; i < chain.length - 1; i++) {
-          chain[i].connect(chain[i + 1]);
-        }
+        outputNode.connect(chain[0]);
+        for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1]);
         outputNode = chain[chain.length - 1];
       }
     }
 
-    if (this._limiterEnabled && this._limiter) {
-      outputNode.connect(this._limiter);
-      this._limiter.connect(this._outputGain);
-      this._limiter.connect(this._analyser);
-    } else {
-      outputNode.connect(this._outputGain);
-      outputNode.connect(this._analyser);
+    // Parametric EQ
+    if (this._peqEnabled) {
+      const peqChain = this.ensurePeqFilters();
+      if (peqChain.length) {
+        outputNode.connect(peqChain[0]);
+        for (let i = 0; i < peqChain.length - 1; i++) peqChain[i].connect(peqChain[i + 1]);
+        outputNode = peqChain[peqChain.length - 1];
+      }
     }
 
-    // Keep analysis analyser connected only while Auto EQ is active.
-    if (this._eqMode === 'auto' && this._analysisAnalyser) {
+    // Limiter
+    if (this._limiterEnabled && this._limiter) {
+      outputNode.connect(this._limiter);
+      outputNode = this._limiter;
+    }
+
+    // Crossfeed
+    if (this._crossfeedEnabled) outputNode = this.connectCrossfeed(outputNode);
+
+    // Convolver
+    if (this._convolverEnabled && this._convolverNodesReady()) outputNode = this.connectConvolver(outputNode);
+
+    } // end dspBypassed check
+
+    outputNode.connect(this._outputGain);
+    outputNode.connect(this._analyser);
+
+    // Analysis analyser for Auto EQ
+    if (this._eqMode === 'auto' && this._analysisAnalyser && !this._dspBypassed) {
       this._inputNode.connect(this._analysisAnalyser);
     }
   }
@@ -1623,15 +1841,25 @@ class GroovePlayer {
       this.updatePlayBtn(false);
       this.highlightActiveTrack();
       this.scheduleSeekUI(true);
+      this.saveResumeState();
     });
 
     media.addEventListener('ended', () => {
       if (media !== this.media) return;
+      if (this._sleepAtTrackEnd) {
+        this._sleepAtTrackEnd = false;
+        this._sleepFadeFactor = 1;
+        this.applyVolumeAndMute();
+        this.updateSleepUI();
+        this.showToast('Sleep timer ended playback', '🌙');
+        return;
+      }
       this.next(true);
     });
 
     media.addEventListener('timeupdate', () => {
       if (media !== this.media) return;
+      this.checkLoopBoundary();
       if (!this._seekDragging) this.scheduleSeekUI(false);
     });
 
@@ -1776,7 +2004,20 @@ class GroovePlayer {
       });
     }
 
+    if (DOM.eqResetBtn) {
+      DOM.eqResetBtn.addEventListener('click', () => this.zeroAllEqBands());
+    }
+
     if (DOM.eqBandContainer) {
+      DOM.eqBandContainer.addEventListener('click', (e) => {
+        const control = e.target.closest('.eq-control');
+        if (!control || e.target.closest('input[type="range"]')) return;
+        const isExpanded = control.classList.contains('is-expanded');
+        // collapse any other open band first
+        DOM.eqBandContainer.querySelectorAll('.eq-control.is-expanded').forEach(el => el.classList.remove('is-expanded'));
+        if (!isExpanded) control.classList.add('is-expanded');
+      });
+
       DOM.eqBandContainer.addEventListener('input', (e) => {
         const slider = e.target.closest('input[type="range"][data-eq-mode][data-band-key]');
         if (!slider) return;
@@ -1791,8 +2032,35 @@ class GroovePlayer {
         );
         this.setEqualizerBand(mode, bandKey, value);
 
-        const valueEl = slider.closest('.eq-control')?.querySelector('.eq-control__value');
+        const control = slider.closest('.eq-control');
+        const valueEl = control?.querySelector('.eq-control__value');
         if (valueEl) valueEl.textContent = this.formatEqValue(value);
+        if (control) control.classList.toggle('has-gain', value !== 0);
+        this.drawEqCurve();
+      });
+
+      // keyboard nudge on expanded band
+      DOM.eqBandContainer.addEventListener('keydown', (e) => {
+        const slider = e.target.closest('input[type="range"][data-eq-mode][data-band-key]');
+        if (!slider) return;
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+        e.preventDefault();
+
+        const mode = slider.dataset.eqMode;
+        const bandKey = slider.dataset.bandKey;
+        const band = this.getBandDefinition(mode, bandKey);
+        const delta = e.key === 'ArrowUp' ? 0.5 : -0.5;
+        const current = this._eqValues[mode]?.[bandKey] ?? 0;
+        const next = this.clampEqValue(current + delta, band?.min ?? -12, band?.max ?? 12);
+
+        slider.value = String(next);
+        this.setEqualizerBand(mode, bandKey, next);
+
+        const control = slider.closest('.eq-control');
+        const valueEl = control?.querySelector('.eq-control__value');
+        if (valueEl) valueEl.textContent = this.formatEqValue(next);
+        if (control) control.classList.toggle('has-gain', next !== 0);
+        this.drawEqCurve();
       });
     }
 
@@ -2584,14 +2852,14 @@ class GroovePlayer {
   ════════════════════════════════════════════ */
   updateMediaSession(track) {
     if (!('mediaSession' in navigator)) return;
+    const isHttp = location.protocol === 'http:' || location.protocol === 'https:';
     navigator.mediaSession.metadata = new MediaMetadata({
       title:  track.title,
       artist: track.artist,
       album:  track.album || '',
-      artwork: [
-        { src: track.cover || 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-        { src: 'icons/icon-512.png',                sizes: '512x512', type: 'image/png' },
-      ],
+      artwork: isHttp ? [
+        { src: track.cover || 'cover.svg', sizes: '192x192', type: 'image/svg+xml' },
+      ] : [],
     });
     navigator.mediaSession.setActionHandler('play',         () => this.play());
     navigator.mediaSession.setActionHandler('pause',        () => this.media.pause());
@@ -2607,8 +2875,16 @@ class GroovePlayer {
   ════════════════════════════════════════════ */
   async registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
+    if (location.protocol === 'file:') return;
+    // Inject manifest only on http(s)
+    if (!document.querySelector('link[rel="manifest"]')) {
+      const link = document.createElement('link');
+      link.rel  = 'manifest';
+      link.href = 'manifest.json';
+      document.head.appendChild(link);
+    }
     try {
-      const reg = await navigator.serviceWorker.register('service-worker.js');
+      const reg = await navigator.serviceWorker.register('service-worker.js?v=1.3.2');
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         newWorker.addEventListener('statechange', () => {
@@ -2620,6 +2896,650 @@ class GroovePlayer {
     } catch (err) {
       console.warn('[Groove] Service Worker registration failed:', err);
     }
+  }
+
+  /* ════════════════════════════════════════════
+     VOLUME SLIDER + MUTE
+  ════════════════════════════════════════════ */
+  _loadVolume() {
+    const raw = localStorage.getItem('groove-volume');
+    if (raw === null) return 100;
+    const n = Number(raw);
+    return isFinite(n) && n >= 0 && n <= 100 ? Math.round(n) : 100;
+  }
+
+  _applyVolumeSlider(value, persist = true) {
+    this._volume = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+    if (DOM.volumeBar) {
+      DOM.volumeBar.value = String(this._volume);
+      DOM.volumeBar.setAttribute('aria-valuenow', String(this._volume));
+      DOM.volumeBar.setAttribute('aria-valuetext', `${this._volume}%`);
+      const track = DOM.volumeBar.closest('.vol-track');
+      if (track) track.style.setProperty('--thumb-pos', `${this._volume}%`);
+    }
+    if (DOM.volumeFill)  DOM.volumeFill.style.width  = `${this._volume}%`;
+    if (DOM.volumeValue) DOM.volumeValue.textContent  = `${this._volume}%`;
+    if (persist) localStorage.setItem('groove-volume', String(this._volume));
+  }
+
+  toggleMute() {
+    this._muted = !this._muted;
+    this._updateMuteUI();
+    this.applyVolumeAndMute();
+    this.showToast(this._muted ? 'Muted' : 'Unmuted', this._muted ? '🔇' : '🔊');
+  }
+
+  _updateMuteUI() {
+    if (!DOM.muteBtn) return;
+    DOM.muteBtn.setAttribute('aria-pressed', String(this._muted));
+    DOM.muteBtn.setAttribute('aria-label',   this._muted ? 'Unmute' : 'Mute');
+    DOM.muteBtn.setAttribute('title',        this._muted ? 'Unmute' : 'Mute');
+    const iconUp  = DOM.muteBtn.querySelector('.icon-vol-up');
+    const iconOff = DOM.muteBtn.querySelector('.icon-vol-off');
+    if (iconUp)  iconUp.style.display  = this._muted ? 'none'  : 'block';
+    if (iconOff) iconOff.style.display = this._muted ? 'block' : 'none';
+  }
+
+  /* ════════════════════════════════════════════
+     FAVORITES
+  ════════════════════════════════════════════ */
+  loadFavorites() {
+    try { return new Set(JSON.parse(localStorage.getItem('groove-favorites') || '[]')); }
+    catch { return new Set(); }
+  }
+  saveFavorites() {
+    localStorage.setItem('groove-favorites', JSON.stringify([...this._favorites]));
+  }
+  trackKey(track) { return track ? track.src : null; }
+  isFavorite(track) { return this._favorites.has(this.trackKey(track)); }
+  toggleFavorite(index = this.currentIndex) {
+    const track = this.playlist[index];
+    if (!track) return;
+    const key = this.trackKey(track);
+    if (this._favorites.has(key)) { this._favorites.delete(key); this.showToast('Removed from favorites', '🤍'); }
+    else { this._favorites.add(key); this.showToast('Added to favorites', '❤'); }
+    this.saveFavorites();
+    this.updateFavoriteUI(track);
+    if (this._favOnly) this.applyFilters();
+  }
+  updateFavoriteUI(track = this.playlist[this.currentIndex]) {
+    if (!DOM.favoriteBtn) return;
+    const fav = this.isFavorite(track);
+    DOM.favoriteBtn.setAttribute('aria-pressed', String(fav));
+    DOM.favoriteBtn.classList.toggle('is-active', fav);
+    DOM.favoriteBtn.title = fav ? 'Remove from favorites' : 'Add to favorites';
+  }
+
+  /* ════════════════════════════════════════════
+     SEARCH + FILTER
+  ════════════════════════════════════════════ */
+  applyFilters() { this.renderPlaylist(); }
+  toggleFavoritesFilter() {
+    this._favOnly = !this._favOnly;
+    if (DOM.favFilterBtn) DOM.favFilterBtn.classList.toggle('is-active', this._favOnly);
+    this.applyFilters();
+  }
+
+  /* ════════════════════════════════════════════
+     PLAYBACK SPEED
+  ════════════════════════════════════════════ */
+  loadSpeed() {
+    const n = Number(localStorage.getItem('groove-speed'));
+    return isFinite(n) && n >= 0.25 && n <= 4 ? n : 1;
+  }
+  applySpeed(value, persist = true) {
+    const v = Math.max(0.25, Math.min(4, Number(value) || 1));
+    this._speed = v;
+    if (this.audio) this.audio.playbackRate = v;
+    if (this.video) this.video.playbackRate = v;
+    if (DOM.speedBar)   DOM.speedBar.value        = String(v);
+    if (DOM.speedValue) DOM.speedValue.textContent = `${v.toFixed(2).replace(/\.?0+$/, '')}×`;
+    if (persist) localStorage.setItem('groove-speed', String(v));
+  }
+
+  /* ════════════════════════════════════════════
+     A/B LOOP
+  ════════════════════════════════════════════ */
+  setLoopA() {
+    this._loopA = this.media.currentTime;
+    this.updateLoopUI();
+    this.showToast(`Loop A: ${this.formatTime(this._loopA)}`, '⟨');
+  }
+  setLoopB() {
+    this._loopB = this.media.currentTime;
+    if (this._loopA !== null && this._loopB <= this._loopA) {
+      this._loopB = null;
+      this.showToast('Loop B must be after A', '⚠');
+      return;
+    }
+    this.updateLoopUI();
+    this.showToast(`Loop B: ${this.formatTime(this._loopB)}`, '⟩');
+  }
+  clearLoop(notify = true) {
+    this._loopA = null; this._loopB = null;
+    this.updateLoopUI();
+    if (notify) this.showToast('Loop cleared', '↺');
+  }
+  updateLoopUI() {
+    if (DOM.loopSetA) DOM.loopSetA.classList.toggle('is-active', this._loopA !== null);
+    if (DOM.loopSetB) DOM.loopSetB.classList.toggle('is-active', this._loopB !== null);
+    if (DOM.loopClear) DOM.loopClear.disabled = this._loopA === null && this._loopB === null;
+    if (DOM.seekLoopRegion && this.media.duration) {
+      if (this._loopA !== null && this._loopB !== null) {
+        const pctA = (this._loopA / this.media.duration) * 100;
+        const pctB = (this._loopB / this.media.duration) * 100;
+        DOM.seekLoopRegion.style.left   = `${pctA}%`;
+        DOM.seekLoopRegion.style.width  = `${pctB - pctA}%`;
+        DOM.seekLoopRegion.hidden = false;
+      } else {
+        DOM.seekLoopRegion.hidden = true;
+      }
+    }
+  }
+  checkLoopBoundary() {
+    if (this._loopA === null || this._loopB === null) return;
+    if (this.media.currentTime >= this._loopB) {
+      this.media.currentTime = this._loopA;
+    }
+  }
+
+  /* ════════════════════════════════════════════
+     SLEEP TIMER
+  ════════════════════════════════════════════ */
+  resumeSleepTimerFromStorage() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('groove-sleep') || 'null');
+      if (!raw) return;
+      if (raw.atTrackEnd) { this._sleepAtTrackEnd = true; this.updateSleepUI(); return; }
+      const remaining = raw.endAt - Date.now();
+      if (remaining > 0) this.startSleepTimer(Math.ceil(remaining / 60000));
+    } catch { /* ignore */ }
+  }
+  startSleepTimer(value) {
+    this.cancelSleepTimer(true);
+    if (!value || value === '0' || value === 0) { this.updateSleepUI(); return; }
+    if (value === 'end') { this._sleepAtTrackEnd = true; this.updateSleepUI(); this.showToast('Sleep after track ends', '🌙'); return; }
+    const ms = Number(value) * 60000;
+    this._sleepEndAt = Date.now() + ms;
+    this.startSleepInterval();
+    this.updateSleepUI(ms);
+    localStorage.setItem('groove-sleep', JSON.stringify({ endAt: this._sleepEndAt }));
+    this.showToast(`Sleep in ${value} min`, '🌙');
+  }
+  startSleepInterval() {
+    this.stopSleepInterval();
+    this._sleepInterval = setInterval(() => this.tickSleepTimer(), 1000);
+  }
+  tickSleepTimer() {
+    if (!this._sleepEndAt) return;
+    const remaining = this._sleepEndAt - Date.now();
+    if (remaining <= 0) { this.finishSleepTimer(); return; }
+    if (remaining <= this._sleepFadeMs) {
+      this._sleepFadeFactor = remaining / this._sleepFadeMs;
+      this.applyVolumeAndMute();
+    }
+    this.updateSleepUI(remaining);
+  }
+  finishSleepTimer() {
+    this.media.pause();
+    this._sleepFadeFactor = 1;
+    this.applyVolumeAndMute();
+    this.cancelSleepTimer(true);
+    this.showToast('Sleep timer — paused', '🌙');
+  }
+  cancelSleepTimer(silent = false) {
+    this._sleepEndAt = null; this._sleepAtTrackEnd = false;
+    this._sleepFadeFactor = 1;
+    this.stopSleepInterval();
+    localStorage.removeItem('groove-sleep');
+    this.updateSleepUI();
+    if (!silent) this.showToast('Sleep timer cancelled', '🌙');
+  }
+  stopSleepInterval() {
+    if (this._sleepInterval) { clearInterval(this._sleepInterval); this._sleepInterval = null; }
+  }
+  updateSleepUI(remainingMs = null) {
+    if (!DOM.sleepRemaining) return;
+    if (this._sleepAtTrackEnd) { DOM.sleepRemaining.textContent = 'After track'; return; }
+    if (remainingMs === null || !this._sleepEndAt) { DOM.sleepRemaining.textContent = 'Off'; return; }
+    const m = Math.ceil(remainingMs / 60000);
+    DOM.sleepRemaining.textContent = m <= 0 ? 'Sleeping…' : `${m} min`;
+  }
+
+  /* ════════════════════════════════════════════
+     PREAMP
+  ════════════════════════════════════════════ */
+  loadPreampDb() {
+    const n = Number(localStorage.getItem('groove-preamp-db'));
+    return isFinite(n) ? Math.max(-12, Math.min(6, n)) : 0;
+  }
+  dbToGain(db) { return Math.pow(10, Number(db) / 20); }
+  applyPreampGain() {
+    if (!this._audioCtx) return;
+    const chain = this._eqFilterChains.get(this._eqMode) || [];
+    // preamp is applied via output gain offset — rebuild routing applies it
+    this.rebuildEqualizerRouting();
+  }
+  setPreampDb(db, persist = true) {
+    this._preampDb = Math.max(-12, Math.min(6, Number(db)));
+    if (DOM.preampBar)   DOM.preampBar.value = String(this._preampDb);
+    if (DOM.preampFill) {
+      const pct = ((this._preampDb + 12) / 18) * 100;
+      DOM.preampFill.style.width = `${pct}%`;
+      const t = DOM.preampFill.closest('.vol-track');
+      if (t) t.style.setProperty('--thumb-pos', `${pct}%`);
+    }
+    if (DOM.preampValue) DOM.preampValue.textContent = `${this._preampDb > 0 ? '+' : ''}${this._preampDb} dB`;
+    if (persist) localStorage.setItem('groove-preamp-db', String(this._preampDb));
+  }
+
+  /* ════════════════════════════════════════════
+     LOUDNESS NORMALIZATION
+  ════════════════════════════════════════════ */
+  loadReplayGainDb() {
+    try { return JSON.parse(localStorage.getItem('groove-replaygain') || '{}'); } catch { return {}; }
+  }
+  setLoudnessEnabled(enabled, persist = true) {
+    this._loudnessEnabled = Boolean(enabled);
+    if (DOM.loudnessToggle) DOM.loudnessToggle.checked = this._loudnessEnabled;
+    if (persist) localStorage.setItem('groove-loudness-on', this._loudnessEnabled ? '1' : '0');
+  }
+
+  /* ════════════════════════════════════════════
+     PARAMETRIC EQ
+  ════════════════════════════════════════════ */
+  loadPeqBands() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('groove-peq-bands') || 'null');
+      if (Array.isArray(saved) && saved.length === 5) return saved;
+    } catch { /* ignore */ }
+    return [60, 250, 1000, 4000, 12000].map((freq) => ({ freq, gain: 0, q: 1 }));
+  }
+  savePeqBands() { localStorage.setItem('groove-peq-bands', JSON.stringify(this._peqBands)); }
+  ensurePeqFilters() {
+    if (!this._audioCtx) return [];
+    if (this._peqFilters && this._peqFilters.length === this._peqBands.length) return this._peqFilters;
+    this._peqFilters = this._peqBands.map((b) => {
+      const f = this._audioCtx.createBiquadFilter();
+      f.type = 'peaking'; f.frequency.value = b.freq; f.gain.value = b.gain; f.Q.value = b.q || 1;
+      return f;
+    });
+    return this._peqFilters;
+  }
+  disconnectPeqFilters() {
+    if (!this._peqFilters) return;
+    this._peqFilters.forEach((f) => { try { f.disconnect(); } catch { /* ignore */ } });
+  }
+  setPeqEnabled(enabled, persist = true) {
+    this._peqEnabled = Boolean(enabled);
+    if (DOM.peqToggle) DOM.peqToggle.checked = this._peqEnabled;
+    this.rebuildEqualizerRouting();
+    if (persist) localStorage.setItem('groove-peq-on', this._peqEnabled ? '1' : '0');
+  }
+  updatePeqBandParam(index, key, value) {
+    if (!this._peqBands[index]) return;
+    this._peqBands[index][key] = Number(value);
+    if (this._peqFilters && this._peqFilters[index]) {
+      const f = this._peqFilters[index];
+      if (key === 'freq') f.frequency.value = value;
+      else if (key === 'gain') f.gain.value = value;
+      else if (key === 'q') f.Q.value = value;
+    }
+    this.savePeqBands();
+  }
+  renderPeqBandsUI() {
+    if (!DOM.peqBands) return;
+    DOM.peqBands.innerHTML = '';
+    this._peqBands.forEach((band, i) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'peq-band';
+      wrap.innerHTML = `
+        <label class="peq-band__label">Band ${i + 1}</label>
+        <input class="peq-freq" type="range" min="0" max="100" step="0.1" value="${Math.log(band.freq / 20) / Math.log(1000) * 100}" aria-label="Freq band ${i+1}" />
+        <span class="peq-freq-value">${band.freq >= 1000 ? (band.freq/1000).toFixed(1) + 'k' : band.freq}Hz</span>
+        <input class="peq-gain" type="range" min="-12" max="12" step="0.5" value="${band.gain}" aria-label="Gain band ${i+1}" />
+        <span class="peq-gain-value">${band.gain > 0 ? '+' : ''}${band.gain} dB</span>`;
+      const freqIn = wrap.querySelector('.peq-freq');
+      const freqOut = wrap.querySelector('.peq-freq-value');
+      const gainIn = wrap.querySelector('.peq-gain');
+      const gainOut = wrap.querySelector('.peq-gain-value');
+      freqIn.addEventListener('input', () => {
+        const freq = Math.round(20 * Math.pow(1000, Number(freqIn.value) / 100));
+        freqOut.textContent = freq >= 1000 ? `${(freq/1000).toFixed(1)}kHz` : `${freq}Hz`;
+        this.updatePeqBandParam(i, 'freq', freq);
+      });
+      gainIn.addEventListener('input', () => {
+        const g = Number(gainIn.value);
+        gainOut.textContent = `${g > 0 ? '+' : ''}${g} dB`;
+        this.updatePeqBandParam(i, 'gain', g);
+      });
+      DOM.peqBands.appendChild(wrap);
+    });
+  }
+
+  /* ════════════════════════════════════════════
+     CROSSFEED
+  ════════════════════════════════════════════ */
+  loadCrossfeedAmount() {
+    const n = Number(localStorage.getItem('groove-crossfeed-amount'));
+    return isFinite(n) ? Math.max(0, Math.min(100, n)) : 45;
+  }
+  ensureCrossfeedNodes() {
+    if (!this._audioCtx || this._crossfeedNodes) return this._crossfeedNodes;
+    const delay = this._audioCtx.createDelay(0.01);
+    const merge = this._audioCtx.createChannelMerger(2);
+    const split = this._audioCtx.createChannelSplitter(2);
+    const gainL = this._audioCtx.createGain();
+    const gainR = this._audioCtx.createGain();
+    delay.delayTime.value = 0.0007;
+    this._crossfeedNodes = { delay, merge, split, gainL, gainR };
+    return this._crossfeedNodes;
+  }
+  applyCrossfeedAmount() {
+    if (!this._crossfeedNodes) return;
+    const g = (this._crossfeedAmount / 100) * 0.4;
+    this._crossfeedNodes.gainL.gain.value = g;
+    this._crossfeedNodes.gainR.gain.value = g;
+  }
+  connectCrossfeed(inputNode) {
+    const n = this.ensureCrossfeedNodes();
+    if (!n) return inputNode;
+    inputNode.connect(n.split);
+    n.split.connect(n.gainL, 0); n.split.connect(n.gainR, 1);
+    n.gainL.connect(n.delay); n.gainR.connect(n.delay);
+    n.delay.connect(n.merge, 0, 1); n.delay.connect(n.merge, 0, 0);
+    n.split.connect(n.merge, 0, 0); n.split.connect(n.merge, 1, 1);
+    this.applyCrossfeedAmount();
+    return n.merge;
+  }
+  disconnectCrossfeedNodes() {
+    if (!this._crossfeedNodes) return;
+    Object.values(this._crossfeedNodes).forEach((n) => { try { n.disconnect(); } catch { /* ignore */ } });
+  }
+  setCrossfeedEnabled(enabled, persist = true) {
+    this._crossfeedEnabled = Boolean(enabled);
+    if (DOM.crossfeedToggle) DOM.crossfeedToggle.checked = this._crossfeedEnabled;
+    this.rebuildEqualizerRouting();
+    if (persist) localStorage.setItem('groove-crossfeed-on', this._crossfeedEnabled ? '1' : '0');
+  }
+  setCrossfeedAmount(value, persist = true) {
+    this._crossfeedAmount = Math.max(0, Math.min(100, Number(value)));
+    this.applyCrossfeedAmount();
+    if (DOM.crossfeedValue) DOM.crossfeedValue.textContent = `${Math.round(this._crossfeedAmount)}%`;
+    if (DOM.crossfeedBar)   DOM.crossfeedBar.value = String(this._crossfeedAmount);
+    if (persist) localStorage.setItem('groove-crossfeed-amount', String(this._crossfeedAmount));
+  }
+
+  /* ════════════════════════════════════════════
+     CONVOLUTION DSP
+  ════════════════════════════════════════════ */
+  loadConvolverMix() {
+    const n = Number(localStorage.getItem('groove-convolver-mix'));
+    return isFinite(n) ? Math.max(0, Math.min(100, n)) : 25;
+  }
+  ensureConvolverNodes() {
+    if (!this._audioCtx || this._convolverNodes) return this._convolverNodes;
+    const conv = this._audioCtx.createConvolver();
+    const dry  = this._audioCtx.createGain();
+    const wet  = this._audioCtx.createGain();
+    const out  = this._audioCtx.createGain();
+    this._convolverNodes = { conv, dry, wet, out };
+    this._loadConvolverIR();
+    return this._convolverNodes;
+  }
+  _convolverNodesReady() { return !!(this._convolverNodes && this._convolverNodes.conv); }
+  _loadConvolverIR() {
+    if (!this._audioCtx || !this._convolverNodes) return;
+    this.generateSyntheticIR(this._convolverSpace);
+  }
+  generateSyntheticIR(spaceKey) {
+    if (!this._audioCtx || !this._convolverNodes) return;
+    const spaces = { smallRoom: { s: 0.6, d: 3.2 }, hall: { s: 2.4, d: 5.5 }, plate: { s: 1.3, d: 6.5 } };
+    const { s: seconds = 1, d: decay = 4 } = spaces[spaceKey] || spaces.smallRoom;
+    const len = Math.floor(this._audioCtx.sampleRate * seconds);
+    const buf = this._audioCtx.createBuffer(2, len, this._audioCtx.sampleRate);
+    for (let c = 0; c < 2; c++) {
+      const ch = buf.getChannelData(c);
+      for (let i = 0; i < len; i++) {
+        ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+      }
+    }
+    this._convolverNodes.conv.buffer = buf;
+  }
+  connectConvolver(inputNode) {
+    const n = this.ensureConvolverNodes();
+    if (!n) return inputNode;
+    const mix = this._convolverMix / 100;
+    n.dry.gain.value = 1 - mix; n.wet.gain.value = mix;
+    inputNode.connect(n.dry); inputNode.connect(n.conv);
+    n.conv.connect(n.wet); n.dry.connect(n.out); n.wet.connect(n.out);
+    return n.out;
+  }
+  disconnectConvolverNodes() {
+    if (!this._convolverNodes) return;
+    Object.values(this._convolverNodes).forEach((n) => { try { n.disconnect(); } catch { /* ignore */ } });
+  }
+  applyConvolverMix() {
+    if (!this._convolverNodes) return;
+    const mix = this._convolverMix / 100;
+    this._convolverNodes.dry.gain.value = 1 - mix;
+    this._convolverNodes.wet.gain.value = mix;
+  }
+  setConvolverMix(value, persist = true) {
+    this._convolverMix = Math.max(0, Math.min(100, Number(value)));
+    this.applyConvolverMix();
+    if (DOM.convolverMixBar)   DOM.convolverMixBar.value = String(this._convolverMix);
+    if (DOM.convolverMixValue) DOM.convolverMixValue.textContent = `${Math.round(this._convolverMix)}%`;
+    if (persist) localStorage.setItem('groove-convolver-mix', String(this._convolverMix));
+  }
+  setConvolverEnabled(enabled, persist = true) {
+    this._convolverEnabled = Boolean(enabled);
+    if (DOM.convolverToggle) DOM.convolverToggle.checked = this._convolverEnabled;
+    this.rebuildEqualizerRouting();
+    if (persist) localStorage.setItem('groove-convolver-on', this._convolverEnabled ? '1' : '0');
+  }
+  setConvolverSpace(spaceKey, persist = true) {
+    this._convolverSpace = spaceKey;
+    if (this._convolverNodes) this.generateSyntheticIR(spaceKey);
+    if (persist) localStorage.setItem('groove-convolver-space', spaceKey);
+  }
+
+  /* ════════════════════════════════════════════
+     GAPLESS PLAYBACK
+  ════════════════════════════════════════════ */
+  setGaplessEnabled(enabled, persist = true) {
+    this._gaplessEnabled = Boolean(enabled);
+    if (DOM.gaplessToggle) DOM.gaplessToggle.checked = this._gaplessEnabled;
+    if (persist) localStorage.setItem('groove-gapless-off', this._gaplessEnabled ? '0' : '1');
+  }
+
+  /* ════════════════════════════════════════════
+     PER-TRACK DSP PROFILES
+  ════════════════════════════════════════════ */
+  loadTrackDspProfiles() {
+    try { return JSON.parse(localStorage.getItem('groove-dsp-profiles') || '{}'); } catch { return {}; }
+  }
+  saveTrackDspProfiles() {
+    localStorage.setItem('groove-dsp-profiles', JSON.stringify(this._trackDspProfiles));
+  }
+  saveCurrentTrackDspProfile() {
+    const track = this.playlist[this.currentIndex];
+    if (!track) return;
+    this._trackDspProfiles[track.src] = {
+      peqEnabled: this._peqEnabled, peqBands: JSON.parse(JSON.stringify(this._peqBands)),
+      crossfeedEnabled: this._crossfeedEnabled, crossfeedAmount: this._crossfeedAmount,
+      convolverEnabled: this._convolverEnabled, convolverSpace: this._convolverSpace, convolverMix: this._convolverMix,
+      speed: this._speed,
+    };
+    this.saveTrackDspProfiles();
+  }
+  applyTrackDspProfile(track) {
+    const p = track && this._trackDspProfiles[track.src];
+    if (!p) return;
+    this._suppressDspProfileCapture = true;
+    if (Array.isArray(p.peqBands) && p.peqBands.length === 5) { this._peqBands = p.peqBands; this._peqFilters = null; this.renderPeqBandsUI(); }
+    this.setPeqEnabled(Boolean(p.peqEnabled), false);
+    this.setCrossfeedAmount(p.crossfeedAmount ?? this._crossfeedAmount, false);
+    this.setCrossfeedEnabled(Boolean(p.crossfeedEnabled), false);
+    if (p.convolverSpace) this.setConvolverSpace(p.convolverSpace, false);
+    this.setConvolverMix(p.convolverMix ?? this._convolverMix, false);
+    this.setConvolverEnabled(Boolean(p.convolverEnabled), false);
+    if (p.speed) this.applySpeed(p.speed, false);
+    this._suppressDspProfileCapture = false;
+  }
+
+  /* ════════════════════════════════════════════
+     BOOKMARKS
+  ════════════════════════════════════════════ */
+  loadBookmarks() {
+    try { return JSON.parse(localStorage.getItem('groove-bookmarks') || '{}'); } catch { return {}; }
+  }
+  saveBookmarksStorage() { localStorage.setItem('groove-bookmarks', JSON.stringify(this._bookmarks)); }
+  getCurrentBookmarks() { const t = this.playlist[this.currentIndex]; return t ? (this._bookmarks[t.src] || []) : []; }
+  addBookmark() {
+    const t = this.playlist[this.currentIndex]; if (!t) return;
+    const time = Math.floor(this.media.currentTime);
+    if (!this._bookmarks[t.src]) this._bookmarks[t.src] = [];
+    if (!this._bookmarks[t.src].includes(time)) { this._bookmarks[t.src].push(time); this._bookmarks[t.src].sort((a,b)=>a-b); }
+    this.saveBookmarksStorage(); this.renderBookmarksUI();
+    this.showToast(`Bookmark: ${this.formatTime(time)}`, '🔖');
+  }
+  removeBookmark(time) {
+    const t = this.playlist[this.currentIndex]; if (!t || !this._bookmarks[t.src]) return;
+    this._bookmarks[t.src] = this._bookmarks[t.src].filter((b) => b !== time);
+    this.saveBookmarksStorage(); this.renderBookmarksUI();
+  }
+  renderBookmarksUI() {
+    if (!DOM.bookmarksList) return;
+    const bms = this.getCurrentBookmarks();
+    DOM.bookmarksList.innerHTML = '';
+    bms.forEach((time) => {
+      const btn = document.createElement('button');
+      btn.className = 'bookmark-chip';
+      btn.textContent = this.formatTime(time);
+      btn.title = `Jump to ${this.formatTime(time)}`;
+      btn.addEventListener('click', () => { this.media.currentTime = time; });
+      const del = document.createElement('button');
+      del.className = 'bookmark-chip__del'; del.textContent = '×'; del.title = 'Remove';
+      del.addEventListener('click', (e) => { e.stopPropagation(); this.removeBookmark(time); });
+      btn.appendChild(del); DOM.bookmarksList.appendChild(btn);
+    });
+  }
+
+  /* ════════════════════════════════════════════
+     ABX BLIND TEST
+  ════════════════════════════════════════════ */
+  startAbxRound() {
+    if (!this._audioCtx || !this._audioGraphConnected) { this.showToast('Start playback first', '⚠'); return; }
+    this._abx.active = true; this._abx.x = Math.random() < 0.5 ? 'A' : 'B'; this._abx.currentlyBypassed = null;
+    if (DOM.abxChoices) DOM.abxChoices.hidden = false;
+    if (DOM.abxStartBtn) DOM.abxStartBtn.textContent = 'New round';
+    if (DOM.abxStatus) DOM.abxStatus.textContent = 'X is hidden — press "Play X" to audition, then guess.';
+  }
+  playAbxX() {
+    if (!this._abx.active) return;
+    const bypass = this._abx.x === 'A';
+    this._dspBypassed = bypass; this.rebuildEqualizerRouting();
+    this._abx.currentlyBypassed = bypass;
+    if (!this.isPlaying) this.play();
+    this.showToast('Listening to X…', '🎧');
+  }
+  guessAbx(guess) {
+    if (!this._abx.active || this._abx.currentlyBypassed === null) { this.showToast('Play X first', '⚠'); return; }
+    const correct = guess === this._abx.x;
+    this._abx.score.total++; if (correct) this._abx.score.correct++;
+    this._dspBypassed = false; this.rebuildEqualizerRouting(); this._abx.active = false;
+    if (DOM.abxChoices) DOM.abxChoices.hidden = true;
+    if (DOM.abxStartBtn) DOM.abxStartBtn.textContent = 'Start round';
+    const xWas = this._abx.x === 'A' ? 'DSP off' : 'your chain';
+    if (DOM.abxStatus) DOM.abxStatus.textContent = correct ? `Correct! X was ${xWas}.` : `Not quite — X was ${xWas}.`;
+    if (DOM.abxScore) { DOM.abxScore.hidden = false; DOM.abxScore.textContent = `Score: ${this._abx.score.correct} / ${this._abx.score.total}`; }
+  }
+
+  /* ════════════════════════════════════════════
+     VISUALIZER MODE
+  ════════════════════════════════════════════ */
+  setVizMode(mode) {
+    this._vizMode = mode;
+    localStorage.setItem('groove-viz-mode', mode);
+    if (DOM.vizWaveBtn)     DOM.vizWaveBtn.classList.toggle('is-active', mode === 'wave');
+    if (DOM.vizSpectrumBtn) DOM.vizSpectrumBtn.classList.toggle('is-active', mode === 'spectrum');
+  }
+
+  /* ════════════════════════════════════════════
+     SHORTCUTS MODAL
+  ════════════════════════════════════════════ */
+  openShortcuts() { if (DOM.shortcutsModal) { DOM.shortcutsModal.hidden = false; DOM.shortcutsOverlay.hidden = false; } }
+  closeShortcuts() { if (DOM.shortcutsModal) { DOM.shortcutsModal.hidden = true; DOM.shortcutsOverlay.hidden = true; } }
+  toggleShortcuts() { if (DOM.shortcutsModal) { if (DOM.shortcutsModal.hidden) this.openShortcuts(); else this.closeShortcuts(); } }
+
+  /* ════════════════════════════════════════════
+     PICTURE-IN-PICTURE
+  ════════════════════════════════════════════ */
+  updatePipButtonVisibility() { if (DOM.pipBtn) DOM.pipBtn.hidden = true; }
+  async togglePictureInPicture() { /* requires HTTP — no-op on file:// */ }
+
+  /* ════════════════════════════════════════════
+     RESUME STATE
+  ════════════════════════════════════════════ */
+  loadResumeState() {
+    try {
+      const raw = JSON.parse(localStorage.getItem('groove-resume') || '{}');
+      const index = this.playlist.findIndex((t) => t.src === raw.src);
+      if (index === -1) return { index: 0, time: 0 };
+      const time = Number(raw.time);
+      return { index, time: isFinite(time) && time > 0 ? time : 0 };
+    } catch { return { index: 0, time: 0 }; }
+  }
+  saveResumeState() {
+    const track = this.playlist[this.currentIndex];
+    if (!track) return;
+    localStorage.setItem('groove-resume', JSON.stringify({ src: track.src, time: this.media.currentTime || 0 }));
+  }
+
+  /* ════════════════════════════════════════════
+     EXTRA FEATURE BINDINGS
+  ════════════════════════════════════════════ */
+  bindExtraFeatures() {
+    if (DOM.favoriteBtn) DOM.favoriteBtn.addEventListener('click', () => this.toggleFavorite());
+    if (DOM.trackSearch) DOM.trackSearch.addEventListener('input', () => { this._searchQuery = DOM.trackSearch.value; this.applyFilters(); });
+    if (DOM.favFilterBtn) DOM.favFilterBtn.addEventListener('click', () => this.toggleFavoritesFilter());
+    if (DOM.speedBar) DOM.speedBar.addEventListener('input', () => this.applySpeed(Number(DOM.speedBar.value), true));
+    if (DOM.loopSetA) DOM.loopSetA.addEventListener('click', () => this.setLoopA());
+    if (DOM.loopSetB) DOM.loopSetB.addEventListener('click', () => this.setLoopB());
+    if (DOM.loopClear) DOM.loopClear.addEventListener('click', () => this.clearLoop());
+    if (DOM.muteBtn) DOM.muteBtn.addEventListener('click', () => this.toggleMute());
+    if (DOM.volumeBar) {
+      DOM.volumeBar.addEventListener('input', () => { this._applyVolumeSlider(DOM.volumeBar.value, false); this.applyVolumeAndMute(); });
+      DOM.volumeBar.addEventListener('change', () => { this._applyVolumeSlider(DOM.volumeBar.value, true); this.applyVolumeAndMute(); });
+    }
+    if (DOM.sleepTimerOptions) {
+      DOM.sleepTimerOptions.addEventListener('click', (e) => {
+        const chip = e.target.closest('.chip'); if (!chip) return;
+        const v = chip.dataset.sleep;
+        this.startSleepTimer(v === '0' ? 0 : (v === 'end' ? 'end' : Number(v)));
+      });
+    }
+    if (DOM.shortcutsBtn) DOM.shortcutsBtn.addEventListener('click', () => this.openShortcuts());
+    if (DOM.shortcutsClose) DOM.shortcutsClose.addEventListener('click', () => this.closeShortcuts());
+    if (DOM.shortcutsOverlay) DOM.shortcutsOverlay.addEventListener('click', () => this.closeShortcuts());
+    if (DOM.preampBar) DOM.preampBar.addEventListener('input', () => this.setPreampDb(Number(DOM.preampBar.value), true));
+    if (DOM.peqToggle) DOM.peqToggle.addEventListener('change', () => this.setPeqEnabled(DOM.peqToggle.checked, true));
+    if (DOM.crossfeedToggle) DOM.crossfeedToggle.addEventListener('change', () => this.setCrossfeedEnabled(DOM.crossfeedToggle.checked, true));
+    if (DOM.crossfeedBar) DOM.crossfeedBar.addEventListener('input', () => this.setCrossfeedAmount(DOM.crossfeedBar.value, true));
+    if (DOM.convolverToggle) DOM.convolverToggle.addEventListener('change', () => this.setConvolverEnabled(DOM.convolverToggle.checked, true));
+    if (DOM.convolverSpace) DOM.convolverSpace.addEventListener('change', () => this.setConvolverSpace(DOM.convolverSpace.value, true));
+    if (DOM.convolverMixBar) DOM.convolverMixBar.addEventListener('input', () => this.setConvolverMix(DOM.convolverMixBar.value, true));
+    if (DOM.loudnessToggle) DOM.loudnessToggle.addEventListener('change', () => this.setLoudnessEnabled(DOM.loudnessToggle.checked, true));
+    if (DOM.gaplessToggle) DOM.gaplessToggle.addEventListener('change', () => this.setGaplessEnabled(DOM.gaplessToggle.checked, true));
+    if (DOM.abxStartBtn) DOM.abxStartBtn.addEventListener('click', () => this.startAbxRound());
+    if (DOM.abxPlayXBtn) DOM.abxPlayXBtn.addEventListener('click', () => this.playAbxX());
+    if (DOM.abxGuessABtn) DOM.abxGuessABtn.addEventListener('click', () => this.guessAbx('A'));
+    if (DOM.abxGuessBBtn) DOM.abxGuessBBtn.addEventListener('click', () => this.guessAbx('B'));
+    if (DOM.vizWaveBtn) DOM.vizWaveBtn.addEventListener('click', () => this.setVizMode('wave'));
+    if (DOM.vizSpectrumBtn) DOM.vizSpectrumBtn.addEventListener('click', () => this.setVizMode('spectrum'));
+    if (DOM.bookmarkAddBtn) DOM.bookmarkAddBtn.addEventListener('click', () => this.addBookmark());
+    if (DOM.pipBtn) DOM.pipBtn.addEventListener('click', () => this.togglePictureInPicture());
   }
 }
 

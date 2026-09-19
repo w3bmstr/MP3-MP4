@@ -5,6 +5,80 @@ vanilla HTML, CSS, and JavaScript. No frameworks. No build step.
 
 ---
 
+## ✨ What's new in v1.3 — Studio-grade DSP
+
+- **Preamp** — a dedicated gain stage so you can push the EQ without clipping.
+- **Parametric EQ (5-band)** — fully adjustable frequency, gain, and Q per
+  band, independent of the graphic EQ.
+- **Crossfeed** — blends a low-passed amount of each channel into the
+  other for a more natural, less fatiguing headphone image.
+- **Convolution DSP** — Small Room / Concert Hall / Plate Reverb spaces
+  built from synthesized impulse responses, plus support for loading your
+  own IR file, with a wet/dry mix control.
+- **Loudness normalization** — learns each track's level as it plays and
+  evens it out over time (RMS-based, ReplayGain-*style* — see note below).
+- **Gapless-optimized playback** — preloads the next track ahead of time
+  to minimize the gap between songs.
+- **Real-time spectrum analyzer** — a proper frequency-bar visualizer,
+  switchable with the oscilloscope waveform view, plus a clip indicator.
+- **ABX blind test** — can you actually hear your DSP chain? Take a blind
+  A/B/X test and track your score.
+- **Bookmarks** — mark a spot in a long track or podcast and jump back to
+  it later.
+- **Picture-in-picture** — pop video tracks out into a floating window.
+- **Per-track DSP profiles** — parametric EQ, crossfeed, convolution, and
+  speed settings are remembered per track and recalled automatically.
+
+### A note on what a browser can and can't do
+
+A few classic "audiophile" features are outside what any web app can
+control, because they're decided by the operating system and hardware,
+not by JavaScript:
+
+- **Bit-perfect / exclusive output and USB DAC mode** — the OS audio
+  mixer sits between any browser and your DAC; there's no web API to
+  bypass it.
+- **Forcing a specific Bluetooth codec (LDAC, aptX HD, etc.)** — codec
+  negotiation happens in the OS/Bluetooth stack, invisible to web pages.
+- **DSD and MQA decoding** — no browser ships a decoder for either
+  format; there's no way to add one from a web app.
+- **True multi-room/multi-device sync** — possible in principle, but it
+  needs a signaling server and is a separate project from a static,
+  local-file player.
+
+Where the list overlapped with things browsers already do natively —
+**FLAC, ALAC, WAV, and AIFF playback** — those just work through the
+`<audio>` element's built-in codec support, and the file picker now
+accepts them directly.
+
+Also worth being precise about: **"gapless" here means preload-optimized,
+not sample-accurate** — it meaningfully shrinks the gap between tracks
+but isn't a guarantee of zero-sample-perfect transitions. And **loudness
+normalization is a simplified RMS-based approach**, not a certified EBU
+R128/ReplayGain implementation — it's a real, working feature, just not
+a lab-calibrated one.
+
+---
+
+## ✨ What's new in v1.1
+
+- **Favorites** — star any track from the player or the queue; filter the
+  queue to favorites only.
+- **Search** — instantly filter the queue by title or artist.
+- **Playback speed** — 0.5×–2× with pitch correction, adjustable via the
+  slider or `[` / `]`.
+- **A/B repeat** — mark a loop start and end point and practice a passage
+  on repeat; the loop range is shown right on the seek bar.
+- **Sleep timer** — 15/30/45/60 minutes or "end of track," with a smooth
+  20-second volume fade-out before playback pauses.
+- **Resume where you left off** — the current track and playback position
+  are remembered across reloads.
+- **Drag-to-reorder queue** — grab the handle on any track row (desktop)
+  to reorder the queue; the order is remembered.
+- **Keyboard shortcuts dialog** — press `?` any time to see every shortcut.
+
+---
+
 ## 🎚️ High-End Equalizer (EQ) App — Full Feature List
 
 ### Core Audio Processing
@@ -307,10 +381,16 @@ To switch accent color to, say, teal (`#2dd4bf`), just replace all `#d4a843` / `
 | `Space`         | Play / Pause                    |
 | `←` / `→`      | Seek ±5 seconds                 |
 | `↑` / `↓`      | Volume Booster ±5%             |
+| `[` / `]`      | Playback speed ∓5%             |
 | `S`             | Toggle Shuffle                  |
 | `R`             | Cycle Repeat (Off → All → One)  |
 | `N`             | Next track                      |
 | `P`             | Previous track                  |
+| `F`             | Favorite the current track      |
+| `A` / `B`      | Set A/B loop start / end         |
+| `L`             | Clear A/B loop                  |
+| `/`             | Focus the track search box      |
+| `?`             | Toggle the shortcuts dialog     |
 
 ---
 

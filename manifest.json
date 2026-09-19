@@ -1,11 +1,11 @@
 {
   "name": "Groove Music Player",
   "short_name": "Groove",
-  "description": "A beautiful offline-first PWA music player. Play your local MP3 collection with style.",
+  "description": "Beautiful offline-first PWA music player — plays local MP3 / MP4 with full DSP chain, EQ, and battery-aware visualizer.",
   "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "theme_color": "#0d0d0d",
   "background_color": "#0d0d0d",
   "lang": "en-US",
@@ -14,68 +14,16 @@
   "id": "groove-music-player",
   "icons": [
     {
-      "src": "icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "screenshots/desktop.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Groove desktop view"
-    },
-    {
-      "src": "screenshots/mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Groove mobile view"
+      "src": "cover.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
@@ -84,14 +32,14 @@
       "short_name": "Playing",
       "description": "Open the player",
       "url": "/index.html#player",
-      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
       "name": "Queue",
       "short_name": "Queue",
       "description": "View the track queue",
       "url": "/index.html#playlist",
-      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ],
   "handle_links": "preferred",
